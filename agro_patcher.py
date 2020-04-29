@@ -17,9 +17,10 @@ import subprocess
 # bundle ID of the app to check
 # you may supply multiple bundle IDs by adding them comma separated as a parameter in jamf pro
 # in the event a developer changes the bundle ID
-APPS = sys.argv[4].split(",")
+#APPS = sys.argv[4].split(",")
+APPS = "com.apple.Safari"
 # update policy to run, supply the custom policy event name, i.e. install_app02
-POLICY = sys.argv[5]
+#POLICY = sys.argv[5]
 
 
 # start functions
@@ -62,11 +63,12 @@ def run_update_policy(event):
 def main():
     """main policy to run the jewels"""
     # iterate through bundle IDs for the edge case a developer changes a bundle ID
-    for app in APPS:
-        # if the app is running, we will silently exit
-        force_quit_applicaiton(app)
-    else:
-        run_update_policy(POLICY)
+    # if the app is running, we will silently exit
+    force_quit_applicaiton(APPS)
+    #run_update_policy(POLICY)
+    thing = subprocess.Popen("pwd", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    print thing.communicate()
+
 
 
 # run the main
