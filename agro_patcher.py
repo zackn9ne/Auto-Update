@@ -34,6 +34,16 @@ def check_if_running(bid):
         return True
     if not app:
         return False
+    
+def force_quit_applicaiton(bid):
+    """force an application to quit for emergency workflows"""
+    # use API to assign a variable for the running API so we can FORCE terminate it
+    apps = NSRunningApplication.runningApplicationsWithBundleIdentifier_(bid)
+    # API returns an array always, must iterate through it
+    for app in apps:
+        # terminate the app
+        app.forceTerminate()
+
 
 
 def run_update_policy(event):
@@ -54,8 +64,7 @@ def main():
     # iterate through bundle IDs for the edge case a developer changes a bundle ID
     for app in APPS:
         # if the app is running, we will silently exit
-        if check_if_running(app):
-            sys.exit(0)
+        force_quit_applicaiton(app)
     else:
         run_update_policy(POLICY)
 
