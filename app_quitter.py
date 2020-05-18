@@ -15,26 +15,30 @@ import time
 
 # jss side variables
 APPLIST = sys.argv[4].split(",") #Parameter 4 us.zoom.xos
-PROMPT = sys.argv[5].lower() # Parameter 5 prompt usually "true"
+PROMPT = sys.argv[5].lower() # Parameter 5 prompt the user usually "true"
 APPNAME = sys.argv[6]# Parameter 6 display name of the app in the dialog boxes, i.e. "Safari"
 UPDATEPOLICY = sys.argv[7]# Parameter 7 the event trigger 
 FORCEQUIT = sys.argv[8].lower() #Parameter 8 forcequit usually "false"
 SIGNOFFMSG = sys.argv[9]# Parameter 9 eg "Your I.T. Department"
 LOGOPATH = sys.argv[10]# Parameter 10 eg /Library/Application Support/JAMF/myorg/logonew.png
+MESSAGEMAIN = """We would like to patch {0}. Please click on the "Update Now" button to continue, this will prompt you to quit your application and save your work.
 
+You may click "Postpone" to delay this update and run it from Self Service at your convenience.
+
+If you choose to update and quit, please wait until you receive confirmation that the app has been patched before reopening.
+""".format(
+    APPNAME
+)
 SYMBOL = u"\u2764\ufe0f" # heart emoji, because we love Snowflake!
-# signing off message
 
-# message to prompt the user to quit and update an app
-MESSAGE = """Your {0} application is out of date
-
-Please press Ok to quickly update it or hit cancel to update later. Make sure to save your work before proceeding.
-
+# construct the message 
+MESSAGE = """{0}
 {1} {2}
 """.format(
-    APPNAME, SYMBOL.encode("utf-8"), SIGNOFFMSG
+    MESSAGEMAIN, SYMBOL.encode("utf-8"), SIGNOFFMSG
 )
 
+# construct the force message
 FORCEMSG = """Your {0} application is out of date
 
 This is an emergency patch and the application will be quit to deploy security patches.
@@ -91,9 +95,9 @@ def user_prompt(prompt):
         "-icon",
         icon,
         "-button1",
-        "OK",
+        "Postpone",
         "-button2",
-        "Cancel",
+        "Update Now",
         "-defaultbutton",
         "1",
     ]
@@ -104,16 +108,16 @@ def user_prompt(prompt):
     # check for exit status for button clicked, 0 = OK 2 = Cancel
     if proc.returncode == 0:
         # user clicked OK
-        return True
+        return False
     if proc.returncode == 2:
         # user clicked cancel
-        return False
+        return True
     # if there is any other return print it
     else:
         print("Error: %s" % err)
 
 
-def force_quit_prompt(prompt):
+def one_option_prompt(prompt):
     """jamf helper dialog to inform of the force quit"""
     # Custom branding icon path goes here for Force Quit work flows
     icon = "{}".format(LOGOPATH)    # test to see what icons are available on the file system
@@ -122,7 +126,7 @@ def force_quit_prompt(prompt):
         # default fail over icon in case our custom one does not exist
         icon = "/System/Library/CoreServices/Problem Reporter.app/Contents/Resources/ProblemReporter.icns"
     # build the jamf helper unix command in a list
-    cmd = [
+    cmd1opt = [
         "/Library/Application Support/JAMF/bin/jamfHelper.app/Contents/MacOS/jamfHelper",
         "-windowType",
         "utility",
@@ -144,10 +148,10 @@ def force_quit_prompt(prompt):
     # check for exit status for button clicked, 0 = OK 2 = Cancel
     if proc.returncode == 0:
         # user clicked OK
-        return True
+        return False
     if proc.returncode == 2:
         # user clicked cancel
-        return False
+        return True
     # if there is any other return print it
     else:
         print("Error: %s" % err)
@@ -209,7 +213,7 @@ def run():
             sys.exit(0)
     # check to see if we are forcing the app to quit first, and take action
     if FORCEQUIT == "true":
-        force_quit_prompt(FORCEMSG)
+        one_option_prompt(FORCEMSG)
         # loop through the bundle ID list
         for bid in APPLIST:
             # force quit the app and force the update via jamf policy
@@ -229,7 +233,7 @@ def run():
                 # quit the app, run the update, prompt to notify when complete
                 quit_application(bid)
                 run_update_policy(UPDATEPOLICY)
-                user_prompt(COMPLETE)
+                one_option_prompt(COMPLETE) #it's just a UX with one 
             if not answer:
                 # if they click "Cancel" we will exit
                 sys.exit(0)
